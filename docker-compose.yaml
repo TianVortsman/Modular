@@ -1,0 +1,28 @@
+services:
+  # Web service for your PHP application (Apache)
+  web:
+    build: .
+    container_name: modular_web
+    volumes:
+      - ./:/var/www/html  # Mount your project files (ensure your public folder is inside your project)
+    ports:
+      - "8080:80"         # Access your app at http://localhost:8080
+    environment:
+      # These can be used by your PHP app to connect to the DB
+      DB_HOST: host.docker.internal
+      DB_USER: Tian
+      DB_PASSWORD: Modul@rdev@2024
+      # Your app can choose which database to connect to (modular_software for the main DB
+      # and a different name for each customer)
+
+  # Clock server service (Node.js)
+  # clockserver:
+  #   build: ./clockserver  # Ensure you have a Dockerfile in the "clockserver" folder
+  #   container_name: modular_clockserver
+  #   ports:
+  #     - "3001:3001"  # Your clock server will be accessible at http://localhost:3001
+  #   environment:
+  #     - NODE_ENV=development
+  #     # Add other clock server-specific environment variables as needed
+volumes:
+  pgdata:
