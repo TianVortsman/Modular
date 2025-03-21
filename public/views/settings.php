@@ -9,7 +9,7 @@ if (isset($_GET['account_number'])) {
     $_SESSION['account_number'] = $account_number;
 
     // Optionally, redirect to remove the query parameter from the URL
-    header("Location: dashboard.php");
+    header("Location: ../views/dashboard.php");
     exit;
 }
 
@@ -18,14 +18,12 @@ if (isset($_SESSION['account_number'])) {
     $account_number = $_SESSION['account_number'];
 } else {
     // Redirect to login or show an error if no account number is found
-    header("Location: techlogin.php");
+    header("Location: ../admin/techlogin.php"); 
     exit;
 }
 
 $userName = $_SESSION['user_name'] ?? ($_SESSION['tech_logged_in'] ? $_SESSION['tech_name'] : 'Guest');
 
-// Include the database connection
-include('../php/db.php');
 ?>
 <!DOCTYPE html>
 <html lang="en" id="page">
@@ -33,16 +31,16 @@ include('../php/db.php');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings</title>
-    <link rel="stylesheet" href="../css/reset.css">
-    <link rel="stylesheet" href="../css/root.css">
-    <link rel="stylesheet" href="../css/sidebar.css">
-    <link rel="stylesheet" href="../css/settings.css">
+    <link rel="stylesheet" href="../assets/css/reset.css">
+    <link rel="stylesheet" href="../assets/css/root.css">
+    <link rel="stylesheet" href="../assets/css/sidebar.css">
+    <link rel="stylesheet" href="../assets/css/settings.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="../js/toggle-theme.js" type="module"></script>
+    <script src="../assets/js/toggle-theme.js" type="module"></script>
 </head>
 <body id="settings">
-<?php include 'sidebar.php'; ?>
+<?php include '../../src/UI/sidebar.php'; ?>
 <div class="settings-container" id="settings-container">
         <div class="settings-content">
         <!-- Section for Preferences -->
@@ -258,8 +256,7 @@ include('../php/db.php');
         </div>
     </div>
 </div>
-<script src="../js/settings.js"></script>
-<script src="../js/sidebar.js"></script>
-<script src="/modular1/js/page-transitions.js"></script>
+<script src="../assets/js/settings.js"></script>
+<script src="../assets/js/sidebar.js"></script>
 </body>
 </html>

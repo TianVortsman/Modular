@@ -11,11 +11,15 @@ if (!isset($_SESSION['csrf_token'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token']; ?>">
     <title>Customer Management Dashboard</title>
-    <link rel="stylesheet" href="../css/root.css">
-    <link rel="stylesheet" href="../css/techlogin.css">
-    <script src="../js/toggle-theme.js" type="module"></script>
+    <link rel="stylesheet" href="../assets/css/root.css">
+    <link rel="stylesheet" href="../assets/css/techlogin.css">
+    <script src="../assets/js/toggle-theme.js" type="module"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Flag to indicate we're in technician mode for sidebar.js
+        const isTechnicianUser = true;
+    </script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -43,7 +47,7 @@ if (!isset($_SESSION['csrf_token'])) {
             <div class="search-container">
                 <div class="search-wrapper">
                     <i class="material-icons search-icon">search</i>
-                    <input type="text" id="search-bar" placeholder="Search customers by name, email, or account number..." onkeyup="searchCustomers()">
+                    <input type="text" id="search-bar" placeholder="Search customers by name, email, or account number...">
                 </div>
                 <div class="filter-wrapper">
                     <select id="status-filter" class="filter-select" onchange="filterCustomers()">
@@ -360,7 +364,7 @@ if (!isset($_SESSION['csrf_token'])) {
                     <span id="customer-account-number"></span>
                 </div>
                 <div class="modal-actions">
-                    <button class="button primary" onclick="loginAsCustomer()">
+                    <button class="button primary" onclick="loginAsTechnician()">
                         <i class="material-icons">login</i>
                         Login as Technician
                     </button>
@@ -379,10 +383,6 @@ if (!isset($_SESSION['csrf_token'])) {
                     <button class="tab-button" data-tab="modules-permissions">
                         <i class="material-icons">apps</i>
                         Modules & Permissions
-                    </button>
-                    <button class="tab-button" data-tab="clock-machines">
-                        <i class="material-icons">timer</i>
-                        Clock Machines
                     </button>
                     <button class="tab-button" data-tab="account-settings">
                         <i class="material-icons">settings</i>
@@ -443,69 +443,6 @@ if (!isset($_SESSION['csrf_token'])) {
                         <div class="module-section">
                             <h4>Mobile Access</h4>
                             <div class="module-list" id="mobile-features"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Clock Machines Tab -->
-                <div id="clock-machines" class="tab-content">
-                    <div class="tab-header">
-                        <h3>Clock Machines</h3>
-                        <div class="machine-actions">
-                            <button class="button secondary" onclick="scanForDevices()">
-                                <i class="material-icons">search</i>
-                                Scan Network
-                            </button>
-                            <button class="button primary" onclick="addNewMachine()">
-                                <i class="material-icons">add_circle</i>
-                                Add Machine
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Clock Server Port Section -->
-                    <div class="settings-section">
-                        <h4>Clock Server Configuration</h4>
-                        <div class="form-group">
-                            <label for="clockServerPort">Clock Server Port</label>
-                            <div class="display-field">
-                                <span id="clockServerPort" class="port-display">Not configured</span>
-                            </div>
-                            <small class="help-text">This port is used by the clock server to listen for this customer's clock machines.</small>
-                        </div>
-                        <div class="server-status">
-                            <div id="server-status-indicator" class="status-indicator"></div>
-                            <span id="server-status-text">Checking server status...</span>
-                        </div>
-                    </div>
-
-                    <!-- Devices Table Section -->
-                    <div class="devices-section">
-                        <h4>Connected Devices</h4>
-                        <div class="table-responsive">
-                            <table class="management-table" id="devicesTable">
-                                <thead>
-                                    <tr>
-                                        <th>Device ID</th>
-                                        <th>Name</th>
-                                        <th>IP Address</th>
-                                        <th>Status</th>
-                                        <th>Last Online</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="devicesTableBody">
-                                    <!-- Devices will be loaded here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="devicesLoading" class="loading-indicator">
-                            <div class="spinner"></div>
-                            <p>Loading devices...</p>
-                        </div>
-                        <div id="noDevicesMessage" class="no-data-message hidden">
-                            <p>No devices found for this customer.</p>
-                            <p>Click "Add Machine" to add a device manually, or devices will be automatically added when they connect to the clock server.</p>
                         </div>
                     </div>
                 </div>
@@ -623,13 +560,15 @@ if (!isset($_SESSION['csrf_token'])) {
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="../js/techlogin.js"></script>
-    <script src="../js/add-customer.js"></script>
-    <script src="../js/fetch-customerdata.js"></script>
-    <script src="../js/clock-server.js"></script>
+    <!-- Debug Link -->
+    <div style="position: fixed; bottom: 10px; right: 10px; font-size: 12px; opacity: 0.5;">
+        <a href="../tech_debug.php" target="_blank">Session Debug</a>
+    </div>
 
-    <?php include '../php/loading-modal.php'; ?>
-    <?php include '../php/response-modal.php'; ?>
+    <!-- Scripts -->
+    <script src="../assets/js/techlogin.js"></script>
+    <?php include '../../src/UI/loading-modal.php'; ?>
+    <?php include '../../src/UI/response-modal.php'; ?>
+    <?php include '../../src/UI/error-table-modal.php'; ?>
 </body>
 </html>

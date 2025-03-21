@@ -17,4 +17,9 @@ return array(
     'Matrix\\' => array($vendorDir . '/markbaker/matrix/classes/src'),
     'Composer\\Pcre\\' => array($vendorDir . '/composer/pcre/src'),
     'Complex\\' => array($vendorDir . '/markbaker/complex/classes/src'),
+    'App\\Services\\' => array($baseDir . '/src/Services'),
+    'App\\Core\\' => array($baseDir . '/src/Core'),
+    'App\\Controllers\\' => array($baseDir . '/src/Controllers'),
+    'App\\Config\\' => array($baseDir . '/src/Config'),
+    'App\\' => array($baseDir . '/src'),
 );

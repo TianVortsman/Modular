@@ -4,28 +4,32 @@ document.addEventListener('DOMContentLoaded', function () {
     // Get current page path
     const currentPath = window.location.pathname;
 
+    // Check if user is logged in as technician
+    const isTechnician = document.body.classList.contains('technician-mode') || 
+                        (typeof isTechnicianUser !== 'undefined' && isTechnicianUser === true);
+
     // Sidebar configurations
     const sidebarConfig = {
         "dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/main/settings.php", icon: "settings", text: "Settings" },
-            { href: "/modular1/main/exporting.php", icon: "upload", text: "Exporting" },
-            { href: "/modular1/main/importing.php", icon: "download", text: "Importing" },
-            { href: "../php/logout.php", icon: "exit_to_app", text: "LogOut" },
-            { href: "/modular1/main/devices.php", icon: "devices", text: "Devices" },
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/views/settings.php", icon: "settings", text: "Settings" },
+            { href: "/public/views/export.php", icon: "upload", text: "Exporting" },
+            { href: "/public/views/importing.php", icon: "download", text: "Importing" },
+            { href: isTechnician ? "/public/admin/techlogin.php" : "/public/php/logout.php", icon: "exit_to_app", text: isTechnician ? "Back to Tech Portal" : "LogOut" },
+            { href: "/public/views/devices.php", icon: "devices", text: "Devices" },
         ],
         "invoice-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/invoice/pages/invoices.php", icon: "description", text: "Invoices" },
-            { href: "/modular1/modules/invoice/pages/invoice-products.php", icon: "inventory_2", text: "Products" },
-            { href: "/modular1/modules/invoice/pages/invoice-clients.php", icon: "people", text: "Clients" },
-            { href: "/modular1/modules/invoice/pages/invoice-payments.php", icon: "payment", text: "Payments" },
-            { href: "/modular1/modules/invoice/pages/invoice-reports.php", icon: "bar_chart", text: "Reports" },
-            { href: "/modular1/modules/invoice/pages/invoice-setup.php", icon: "build", text: "Setup" },
-            { href: "/modular1/modules/invoice/pages/sales-reps.php", icon: "group", text: "Sales Reps" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/invoice/pages/invoices.php", icon: "description", text: "Invoices" },
+            { href: "/public/modules/invoice/pages/invoice-products.php", icon: "inventory_2", text: "Products" },
+            { href: "/public/modules/invoice/pages/invoice-clients.php", icon: "people", text: "Clients" },
+            { href: "/public/modules/invoice/pages/invoice-payments.php", icon: "payment", text: "Payments" },
+            { href: "/public/modules/invoice/pages/invoice-reports.php", icon: "bar_chart", text: "Reports" },
+            { href: "/public/modules/invoice/pages/invoice-setup.php", icon: "build", text: "Setup" },
+            { href: "/public/modules/invoice/pages/sales-reps.php", icon: "group", text: "Sales Reps" }
         ],
         "settings": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
             { href: "#preferences-settings", icon: "settings", text: "Preferences", onclick: "activateSection('preferences-settings')" },
             { href: "#time-attendance-settings", icon: "schedule", text: "Time & Attendance", onclick: "activateSection('time-attendance-settings')" },
             { href: "#invoicing-settings", icon: "receipt", text: "Invoicing & Billing", onclick: "activateSection('invoicing-settings')" },
@@ -41,12 +45,12 @@ document.addEventListener('DOMContentLoaded', function () {
             { href: "#access-control-settings", icon: "lock", text: "Access Control", onclick: "activateSection('access-control-settings')" }
         ],
         "invoice-clients": [
-            { href: "/modular1/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
+            { href: "/public/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
             { href: "#", icon: "person_add", text: "Add Client", onclick: "openAddClientModal()" },
-            { href: "/modular1/modules/invoice/pages/invoice-payments.php", icon: "payment", text: "Payment Reminder" }
+            { href: "/public/modules/invoice/pages/invoice-payments.php", icon: "payment", text: "Payment Reminder" }
         ],
         "invoice-products": [
-            { href: "/modular1/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard"},
+            { href: "/public/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard"},
             { href: "#", icon: "category", text: "Products", tab: "products", class: "sidebar-button", onclick: "fetchProducts('products')" },
             { href: "#", icon: "build", text: "Parts", tab: "parts", class: "sidebar-button", onclick: "fetchProducts('parts')" },
             { href: "#", icon: "directions_car", text: "Vehicles", tab: "vehicles", class: "sidebar-button", onclick: "fetchProducts('vehicles')" },
@@ -54,14 +58,14 @@ document.addEventListener('DOMContentLoaded', function () {
             { href: "#", icon: "remove_circle_outline", text: "Services", tab: "services", class: "sidebar-button", onclick: "fetchProducts('services')" }
         ],
         "payments":[
-            { href: "/modular1/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
+            { href: "/public/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
         ],
         "sales-reps":[
-            { href: "/modular1/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
+            { href: "/public/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
             { href: "#", icon: "person_add", text: "Add Sales Rep", onclick: "openAddSalesRepModal()" }
         ],
         "invoice-reports":[
-            { href: "/modular1/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
+            { href: "/public/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard" },
             { href: "#sales-reports", icon: "bar_chart", text: "Sales Reports", onclick: "activateSection('sales-reports')" },
             { href: "#tax-reports", icon: "receipt", text: "Tax Reports", onclick: "activateSection('tax-reports')" },
             { href: "#income-reports", icon: "attach_money", text: "Income Reports", onclick: "activateSection('income-reports')" },
@@ -69,139 +73,139 @@ document.addEventListener('DOMContentLoaded', function () {
             { href: "#general-reports", icon: "assessment", text: "General Reports", onclick: "activateSection('general-reports')" }
         ],
         "accounting-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/accounting/pages/general-ledger.php", icon: "book", text: "General Ledger" },
-            { href: "/modular1/modules/accounting/pages/chart-of-accounts.php", icon: "account_tree", text: "Chart of Accounts" },
-            { href: "/modular1/modules/accounting/pages/trial-balance.php", icon: "balance", text: "Trial Balance" },
-            { href: "/modular1/modules/accounting/pages/profit-loss-report.php", icon: "bar_chart", text: "Profit & Loss Report" },
-            { href: "/modular1/modules/accounting/pages/balance-sheet.php", icon: "assessment", text: "Balance Sheet" },
-            { href: "/modular1/modules/accounting/pages/cash-flow-statement.php", icon: "show_chart", text: "Cash Flow" },
-            { href: "/modular1/modules/accounting/pages/reconciliation.php", icon: "sync", text: "Reconciliation" },
-            { href: "/modular1/modules/accounting/pages/journal-entries.php", icon: "edit", text: "Journal Entries" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/accounting/pages/general-ledger.php", icon: "book", text: "General Ledger" },
+            { href: "/public/modules/accounting/pages/chart-of-accounts.php", icon: "account_tree", text: "Chart of Accounts" },
+            { href: "/public/modules/accounting/pages/trial-balance.php", icon: "balance", text: "Trial Balance" },
+            { href: "/public/modules/accounting/pages/profit-loss-report.php", icon: "bar_chart", text: "Profit & Loss Report" },
+            { href: "/public/modules/accounting/pages/balance-sheet.php", icon: "assessment", text: "Balance Sheet" },
+            { href: "/public/modules/accounting/pages/cash-flow-statement.php", icon: "show_chart", text: "Cash Flow" },
+            { href: "/public/modules/accounting/pages/reconciliation.php", icon: "sync", text: "Reconciliation" },
+            { href: "/public/modules/accounting/pages/journal-entries.php", icon: "edit", text: "Journal Entries" }
         ],
         "invoices": [
-            { href: "/modular1/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard", },
+            { href: "/public/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard", },
         ],
         "invoice-setup": [
-            { href: "/modular1/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard", },
+            { href: "/public/modules/invoice/invoice-dashboard.php", icon: "dashboard", text: "Dashboard", },
         ],
         "TandA": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/timeandatt/pages/employees.php", icon: "people", text: "Employees" },
-            { href: "/modular1/modules/timeandatt/pages/timecards.php", icon: "access_time", text: "Timecards" },
-            { href: "/modular1/modules/timeandatt/pages/mobile-clocking.php", icon: "phone_android", text: "Mobile Clocking" },
-            { href: "/modular1/modules/timeandatt/pages/reports.php", icon: "bar_chart", text: "Reports" },
-            { href: "/modular1/modules/timeandatt/pages/devices.php", icon: "devices", text: "Devices" },
-            { href: "/modular1/modules/timeandatt/pages/schedules.php", icon: "calendar_today", text: "Schedules" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/timeandatt/pages/employees.php", icon: "people", text: "Employees" },
+            { href: "/public/modules/timeandatt/pages/timecards.php", icon: "access_time", text: "Timecards" },
+            { href: "/public/modules/timeandatt/pages/mobile-clocking.php", icon: "phone_android", text: "Mobile Clocking" },
+            { href: "/public/modules/timeandatt/pages/reports.php", icon: "bar_chart", text: "Reports" },
+            { href: "/public/modules/timeandatt/pages/devices.php", icon: "devices", text: "Devices" },
+            { href: "/public/modules/timeandatt/pages/schedules.php", icon: "calendar_today", text: "Schedules" }
         ],
         "timecards": [
-            { href: "/modular1/modules/timeandatt/dashboard-TA.php", icon: "dashboard", text: "Dashboard" },
-            { href: "/modular1/modules/timeandatt/pages/employees.php", icon: "people", text: "Employees" },
-            { href: "/modular1/modules/timeandatt/pages/timecards.php", icon: "access_time", text: "Timecards", active: true },
-            { href: "/modular1/modules/timeandatt/pages/mobile-clocking.php", icon: "phone_android", text: "Mobile Clocking" },
-            { href: "/modular1/modules/timeandatt/pages/reports.php", icon: "bar_chart", text: "Reports" },
-            { href: "/modular1/modules/timeandatt/pages/devices.php", icon: "devices", text: "Devices" },
-            { href: "/modular1/modules/timeandatt/pages/schedules.php", icon: "calendar_today", text: "Schedules" }
+            { href: "/public/modules/timeandatt/dashboard-TA.php", icon: "dashboard", text: "Dashboard" },
+            { href: "/public/modules/timeandatt/pages/employees.php", icon: "people", text: "Employees" },
+            { href: "/public/modules/timeandatt/pages/timecards.php", icon: "access_time", text: "Timecards", active: true },
+            { href: "/public/modules/timeandatt/pages/mobile-clocking.php", icon: "phone_android", text: "Mobile Clocking" },
+            { href: "/public/modules/timeandatt/pages/reports.php", icon: "bar_chart", text: "Reports" },
+            { href: "/public/modules/timeandatt/pages/devices.php", icon: "devices", text: "Devices" },
+            { href: "/public/modules/timeandatt/pages/schedules.php", icon: "calendar_today", text: "Schedules" }
         ],
         "schedules": [
-            { href: "/modular1/modules/timeandatt/dashboard-TA.php", icon: "dashboard", text: "Dashboard" },
-            { href: "/modular1/modules/timeandatt/pages/employees.php", icon: "people", text: "Employees" },
-            { href: "/modular1/modules/timeandatt/pages/timecards.php", icon: "access_time", text: "Timecards" },
-            { href: "/modular1/modules/timeandatt/pages/mobile-clocking.php", icon: "phone_android", text: "Mobile Clocking" },
-            { href: "/modular1/modules/timeandatt/pages/reports.php", icon: "bar_chart", text: "Reports" },
-            { href: "/modular1/modules/timeandatt/pages/devices.php", icon: "devices", text: "Devices" },
-            { href: "/modular1/modules/timeandatt/pages/schedules.php", icon: "calendar_today", text: "Schedules", active: true }
+            { href: "/public/modules/timeandatt/dashboard-TA.php", icon: "dashboard", text: "Dashboard" },
+            { href: "/public/modules/timeandatt/pages/employees.php", icon: "people", text: "Employees" },
+            { href: "/public/modules/timeandatt/pages/timecards.php", icon: "access_time", text: "Timecards" },
+            { href: "/public/modules/timeandatt/pages/mobile-clocking.php", icon: "phone_android", text: "Mobile Clocking" },
+            { href: "/public/modules/timeandatt/pages/reports.php", icon: "bar_chart", text: "Reports" },
+            { href: "/public/modules/timeandatt/pages/devices.php", icon: "devices", text: "Devices" },
+            { href: "/public/modules/timeandatt/pages/schedules.php", icon: "calendar_today", text: "Schedules", active: true }
         ],
         "TA-employees": [
-            { href: "/modular1/modules/timeandatt/dashboard-TA.php", icon: "dashboard", text: "Dashboard", },
+            { href: "/public/modules/timeandatt/dashboard-TA.php", icon: "dashboard", text: "Dashboard", },
             { href: "#", icon: "person_add", text: "Add Employee", onclick: "openAddEmployeeModal()" },
-            { href: "/modular1/modules/timeandatt/pages/import-employees.php", icon: "upload_file", text: "Import Employees" }
+            { href: "/public/modules/timeandatt/pages/import-employees.php", icon: "upload_file", text: "Import Employees" }
         ],
         "hr-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/hr/pages/employees.php", icon: "people", text: "Employees" },
-            { href: "/modular1/modules/hr/pages/recruitment.php", icon: "person_add", text: "Recruitment" },
-            { href: "/modular1/modules/hr/pages/performance.php", icon: "assessment", text: "Performance" },
-            { href: "/modular1/modules/hr/pages/training.php", icon: "school", text: "Training" },
-            { href: "/modular1/modules/hr/pages/documents.php", icon: "description", text: "Documents" },
-            { href: "/modular1/modules/hr/pages/benefits.php", icon: "health_and_safety", text: "Benefits" },
-            { href: "/modular1/modules/hr/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/hr/pages/employees.php", icon: "people", text: "Employees" },
+            { href: "/public/modules/hr/pages/recruitment.php", icon: "person_add", text: "Recruitment" },
+            { href: "/public/modules/hr/pages/performance.php", icon: "assessment", text: "Performance" },
+            { href: "/public/modules/hr/pages/training.php", icon: "school", text: "Training" },
+            { href: "/public/modules/hr/pages/documents.php", icon: "description", text: "Documents" },
+            { href: "/public/modules/hr/pages/benefits.php", icon: "health_and_safety", text: "Benefits" },
+            { href: "/public/modules/hr/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "project-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/project/pages/projects.php", icon: "assignment", text: "Projects" },
-            { href: "/modular1/modules/project/pages/tasks.php", icon: "task", text: "Tasks" },
-            { href: "/modular1/modules/project/pages/teams.php", icon: "groups", text: "Teams" },
-            { href: "/modular1/modules/project/pages/timeline.php", icon: "timeline", text: "Timeline" },
-            { href: "/modular1/modules/project/pages/resources.php", icon: "build", text: "Resources" },
-            { href: "/modular1/modules/project/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/project/pages/projects.php", icon: "assignment", text: "Projects" },
+            { href: "/public/modules/project/pages/tasks.php", icon: "task", text: "Tasks" },
+            { href: "/public/modules/project/pages/teams.php", icon: "groups", text: "Teams" },
+            { href: "/public/modules/project/pages/timeline.php", icon: "timeline", text: "Timeline" },
+            { href: "/public/modules/project/pages/resources.php", icon: "build", text: "Resources" },
+            { href: "/public/modules/project/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "inventory-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/inventory/pages/items.php", icon: "inventory_2", text: "Items" },
-            { href: "/modular1/modules/inventory/pages/stock.php", icon: "store", text: "Stock" },
-            { href: "/modular1/modules/inventory/pages/suppliers.php", icon: "local_shipping", text: "Suppliers" },
-            { href: "/modular1/modules/inventory/pages/orders.php", icon: "shopping_cart", text: "Orders" },
-            { href: "/modular1/modules/inventory/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/inventory/pages/items.php", icon: "inventory_2", text: "Items" },
+            { href: "/public/modules/inventory/pages/stock.php", icon: "store", text: "Stock" },
+            { href: "/public/modules/inventory/pages/suppliers.php", icon: "local_shipping", text: "Suppliers" },
+            { href: "/public/modules/inventory/pages/orders.php", icon: "shopping_cart", text: "Orders" },
+            { href: "/public/modules/inventory/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "crm-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/crm/pages/contacts.php", icon: "contacts", text: "Contacts" },
-            { href: "/modular1/modules/crm/pages/leads.php", icon: "trending_up", text: "Leads" },
-            { href: "/modular1/modules/crm/pages/opportunities.php", icon: "lightbulb", text: "Opportunities" },
-            { href: "/modular1/modules/crm/pages/campaigns.php", icon: "campaign", text: "Campaigns" },
-            { href: "/modular1/modules/crm/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/crm/pages/contacts.php", icon: "contacts", text: "Contacts" },
+            { href: "/public/modules/crm/pages/leads.php", icon: "trending_up", text: "Leads" },
+            { href: "/public/modules/crm/pages/opportunities.php", icon: "lightbulb", text: "Opportunities" },
+            { href: "/public/modules/crm/pages/campaigns.php", icon: "campaign", text: "Campaigns" },
+            { href: "/public/modules/crm/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "support-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/support/pages/tickets.php", icon: "confirmation_number", text: "Tickets" },
-            { href: "/modular1/modules/support/pages/knowledge.php", icon: "menu_book", text: "Knowledge Base" },
-            { href: "/modular1/modules/support/pages/faq.php", icon: "help", text: "FAQ" },
-            { href: "/modular1/modules/support/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/support/pages/tickets.php", icon: "confirmation_number", text: "Tickets" },
+            { href: "/public/modules/support/pages/knowledge.php", icon: "menu_book", text: "Knowledge Base" },
+            { href: "/public/modules/support/pages/faq.php", icon: "help", text: "FAQ" },
+            { href: "/public/modules/support/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "fleet-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/fleet/pages/vehicles.php", icon: "directions_car", text: "Vehicles" },
-            { href: "/modular1/modules/fleet/pages/maintenance.php", icon: "build", text: "Maintenance" },
-            { href: "/modular1/modules/fleet/pages/drivers.php", icon: "person", text: "Drivers" },
-            { href: "/modular1/modules/fleet/pages/trips.php", icon: "map", text: "Trips" },
-            { href: "/modular1/modules/fleet/pages/fuel.php", icon: "local_gas_station", text: "Fuel Log" },
-            { href: "/modular1/modules/fleet/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/fleet/pages/vehicles.php", icon: "directions_car", text: "Vehicles" },
+            { href: "/public/modules/fleet/pages/maintenance.php", icon: "build", text: "Maintenance" },
+            { href: "/public/modules/fleet/pages/drivers.php", icon: "person", text: "Drivers" },
+            { href: "/public/modules/fleet/pages/trips.php", icon: "map", text: "Trips" },
+            { href: "/public/modules/fleet/pages/fuel.php", icon: "local_gas_station", text: "Fuel Log" },
+            { href: "/public/modules/fleet/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "asset-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/asset/pages/assets.php", icon: "business_center", text: "Assets" },
-            { href: "/modular1/modules/asset/pages/maintenance.php", icon: "build", text: "Maintenance" },
-            { href: "/modular1/modules/asset/pages/depreciation.php", icon: "trending_down", text: "Depreciation" },
-            { href: "/modular1/modules/asset/pages/licenses.php", icon: "vpn_key", text: "Licenses" },
-            { href: "/modular1/modules/asset/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/asset/pages/assets.php", icon: "business_center", text: "Assets" },
+            { href: "/public/modules/asset/pages/maintenance.php", icon: "build", text: "Maintenance" },
+            { href: "/public/modules/asset/pages/depreciation.php", icon: "trending_down", text: "Depreciation" },
+            { href: "/public/modules/asset/pages/licenses.php", icon: "vpn_key", text: "Licenses" },
+            { href: "/public/modules/asset/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "access-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/access/pages/users.php", icon: "people", text: "Users" },
-            { href: "/modular1/modules/access/pages/roles.php", icon: "admin_panel_settings", text: "Roles" },
-            { href: "/modular1/modules/access/pages/permissions.php", icon: "security", text: "Permissions" },
-            { href: "/modular1/modules/access/pages/logs.php", icon: "history", text: "Access Logs" },
-            { href: "/modular1/modules/access/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/access/pages/users.php", icon: "people", text: "Users" },
+            { href: "/public/modules/access/pages/roles.php", icon: "admin_panel_settings", text: "Roles" },
+            { href: "/public/modules/access/pages/permissions.php", icon: "security", text: "Permissions" },
+            { href: "/public/modules/access/pages/logs.php", icon: "history", text: "Access Logs" },
+            { href: "/public/modules/access/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "payroll-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/payroll/pages/salaries.php", icon: "payments", text: "Salaries" },
-            { href: "/modular1/modules/payroll/pages/deductions.php", icon: "remove_circle", text: "Deductions" },
-            { href: "/modular1/modules/payroll/pages/benefits.php", icon: "add_circle", text: "Benefits" },
-            { href: "/modular1/modules/payroll/pages/taxes.php", icon: "receipt", text: "Taxes" },
-            { href: "/modular1/modules/payroll/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/payroll/pages/salaries.php", icon: "payments", text: "Salaries" },
+            { href: "/public/modules/payroll/pages/deductions.php", icon: "remove_circle", text: "Deductions" },
+            { href: "/public/modules/payroll/pages/benefits.php", icon: "add_circle", text: "Benefits" },
+            { href: "/public/modules/payroll/pages/taxes.php", icon: "receipt", text: "Taxes" },
+            { href: "/public/modules/payroll/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "mobile-dashboard": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
-            { href: "/modular1/modules/mobile/pages/settings.php", icon: "settings", text: "Settings" },
-            { href: "/modular1/modules/mobile/pages/users.php", icon: "people", text: "Users" },
-            { href: "/modular1/modules/mobile/pages/notifications.php", icon: "notifications", text: "Notifications" },
-            { href: "/modular1/modules/mobile/pages/sync.php", icon: "sync", text: "Sync" },
-            { href: "/modular1/modules/mobile/pages/reports.php", icon: "bar_chart", text: "Reports" }
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/modules/mobile/pages/settings.php", icon: "settings", text: "Settings" },
+            { href: "/public/modules/mobile/pages/users.php", icon: "people", text: "Users" },
+            { href: "/public/modules/mobile/pages/notifications.php", icon: "notifications", text: "Notifications" },
+            { href: "/public/modules/mobile/pages/sync.php", icon: "sync", text: "Sync" },
+            { href: "/public/modules/mobile/pages/reports.php", icon: "bar_chart", text: "Reports" }
         ],
         "importing": [
-            { href: "/modular1/main/dashboard.php", icon: "home", text: "Home" },
+            { href: "/public/views/dashboard.php", icon: "home", text: "Home" },
             { href: "#timeandatt", icon: "schedule", text: "Time & Attendance", onclick: "activateSection('timeandatt')" },
             { href: "#accounting", icon: "account_balance", text: "Accounting", onclick: "activateSection('accounting')" },
             { href: "#payroll", icon: "payments", text: "Payroll Management", onclick: "activateSection('payroll')" },
@@ -351,13 +355,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (exitButton) {
         exitButton.addEventListener('click', function (event) {
             event.preventDefault();
-            fetch('/path/to/session/status/endpoint')
+            fetch('/src/api/session/status.php')
                 .then(response => response.json())
                 .then(data => {
                     if (data.tech_logged_in) {
-                        window.location.href = 'techlogin.php';
+                        window.location.href = '/public/admin/techlogin.php';
                     } else if (data.user_logged_in) {
-                        window.location.href = '../index.php';
+                        window.location.href = '/public/index.php';
                     }
                 })
                 .catch(error => console.error('Error fetching session status:', error));
@@ -375,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 function checkMultipleAccounts() {
     if (multipleAccounts) {
-        window.location.href = "/modular1/main/choose-account.php"; // Redirect if session variable is set
+        window.location.href = "/public/account/choose-account.php"; // Redirect if session variable is set
     }
 }
 
@@ -475,7 +479,7 @@ function loadNotifications(tab, page, reset) {
     }
     
     // Fetch notifications from the server
-    fetch(`/modular1/api/notifications.php?tab=${tab}&page=${page}`)
+    fetch(`/src/api/notifications.php?tab=${tab}&page=${page}`)
         .then(response => response.json())
         .then(data => {
             // Remove loading indicators
@@ -623,7 +627,7 @@ function formatNotificationTime(timestamp) {
  * @param {number} id - The notification ID
  */
 function markNotificationAsRead(id) {
-    fetch(`/modular1/api/notifications.php?action=mark_read&id=${id}`, {
+    fetch(`/src/api/notifications.php?action=mark_read&id=${id}`, {
         method: 'POST'
     })
         .then(response => response.json())
@@ -654,7 +658,7 @@ function markNotificationAsRead(id) {
  * Mark all notifications as read
  */
 function markAllNotificationsAsRead() {
-    fetch('/modular1/api/notifications.php?action=mark_all_read', {
+    fetch('/src/api/notifications.php?action=mark_all_read', {
         method: 'POST'
     })
         .then(response => response.json())
@@ -685,7 +689,7 @@ function markAllNotificationsAsRead() {
  * Update the notification count badge
  */
 function updateNotificationCount() {
-    fetch('/modular1/api/notifications.php?action=count')
+    fetch('/src/api/notifications.php?action=count')
         .then(response => response.json())
         .then(data => {
             const countElement = document.getElementById('notification-count');

@@ -9,7 +9,7 @@ if (isset($_GET['account_number'])) {
     $_SESSION['account_number'] = $account_number;
 
     // Optionally, redirect to remove the query parameter from the URL
-    header("Location: dashboard.php");
+    header("Location: ../views/dashboard.php");
     exit;
 }
 
@@ -18,14 +18,12 @@ if (isset($_SESSION['account_number'])) {
     $account_number = $_SESSION['account_number'];
 } else {
     // Redirect to login or show an error if no account number is found
-    header("Location: techlogin.php");
+    header("Location: ../admin/techlogin.php");
     exit;
 }
 
 $userName = $_SESSION['user_name'] ?? ($_SESSION['tech_logged_in'] ? $_SESSION['tech_name'] : 'Guest');
 
-// Include the database connection
-include('../php/db.php');
 $multiple_accounts = isset($_SESSION['multiple_accounts']) ? $_SESSION['multiple_accounts'] : false;
 ?>
 <!DOCTYPE html>
@@ -35,18 +33,18 @@ $multiple_accounts = isset($_SESSION['multiple_accounts']) ? $_SESSION['multiple
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Import Center</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="../css/root.css">
-    <link rel="stylesheet" href="../css/imports.css">
-    <link rel="stylesheet" href="../css/sidebar.css">
-    <script src="../js/sidebar.js"></script>
-    <script src="../js/imports.js"></script>
-    <script src="../js/toggle-theme.js"></script>
+    <link rel="stylesheet" href="../assets/css/root.css">
+    <link rel="stylesheet" href="../assets/css/imports.css">
+    <link rel="stylesheet" href="../assets/css/sidebar.css">
+    <script src="../assets/js/sidebar.js"></script>
+    <script src="../assets/js/imports.js"></script>
+    <script src="../assets/js/toggle-theme.js"></script>
 </head>
 <body id="importing">
-    <?php include('sidebar.php'); ?>
-    <?php include('../php/loading-modal.php'); ?>
-    <?php include('../php/response-modal.php'); ?>
-    <?php include('../php/error-table-modal.php'); ?>
+    <?php include('../../src/UI/sidebar.php'); ?>
+    <?php include('../../src/UI/loading-modal.php'); ?>
+    <?php include('../../src/UI/response-modal.php'); ?>
+    <?php include('../../src/UI/error-table-modal.php'); ?>
     
     <div class="import-container">
         <div class="import-header">

@@ -1,27 +1,62 @@
+<?php
+// Include the SidebarManager class
+require_once __DIR__ . '/SidebarManager.php';
+
+// Create instance of SidebarManager
+$sidebarManager = new App\UI\SidebarManager();
+
+// Get user info
+$userName = $sidebarManager->getUserName();
+$accountNumber = $sidebarManager->getAccountNumber();
+$notificationCount = $sidebarManager->getNotificationCount();
+$userRole = $sidebarManager->getUserRole();
+$logoutUrl = $sidebarManager->getLogoutUrl();
+$accountClickBehavior = $sidebarManager->getAccountClickBehavior();
+$accountCssClass = $sidebarManager->getAccountCssClass();
+$isAccountClickable = $sidebarManager->isAccountClickable();
+?>
 <nav class="modular-sidebar" id="sidebar">
         <!-- Sidebar Logo as Toggle Button -->
         <div class="modular-logo" id="sidebarToggle">
             <div class="animated-circle">
-            <a><img src="/modular1/img/logo.webp" alt="Logo"></a>
+            <a><img src="/public/assets/img/logo.webp" alt="Logo"></a>
             </div>
         </div>
             <div class="modular-user-info">
-                <p><strong>User:</strong> <?= htmlspecialchars($userName) ?></p> <!-- Dynamic User Name -->
-                <p onclick="checkMultipleAccounts()"><strong>Account:</strong> <?= htmlspecialchars($account_number)?></p> <!-- Dynamic Account Number -->
+                <p><strong><?= htmlspecialchars($userRole) ?>:</strong> <?= htmlspecialchars($userName) ?></p>
+                <?php if ($isAccountClickable): ?>
+                    <p class="<?= $accountCssClass ?>">
+                        <strong>Account:</strong> <a href="/public/account/choose-account.php" style="text-decoration: none; color: inherit;"><?= htmlspecialchars($accountNumber) ?></a>
+                    </p>
+                <?php else: ?>
+                    <p><strong>Account:</strong> <?= htmlspecialchars($accountNumber) ?></p>
+                <?php endif; ?>
                 <!-- Notifications Bell -->
                 <div class="notification-bell" id="notification-bell">
                     <i class="material-icons">notifications</i>
-                    <span class="notification-badge" id="notification-count">0</span>
+                    <span class="notification-badge" id="notification-count"><?= $notificationCount ?></span>
                 </div>
             </div>
         <ul class="modular-nav-items">
-            <li><a href="/modular1/main/dashboard.php"><i class="material-icons nav-icon" id="home-button" >home</i> <span class="nav-text">Home</span></a></li>
-            <li><a href="/modular1/main/settings.php"><i class="material-icons nav-icon" id="settings-button" >settings</i> <span class="nav-text">Settings</span></a></li>
-            <li><a href="pages/export.html"><i class="material-icons nav-icon" id="import-button" >upload</i> <span class="nav-text">Exporting</span></a></li>
-            <li><a href="pages/import.html"><i class="material-icons nav-icon" id="export-button" >download</i> <span class="nav-text">Importing</span></a></li>
-            <li><a href="../php/logout.php"><i class="material-icons nav-icon" id="exit-button" >exit_to_app</i> <span class="nav-text">LogOut</span></a></li> 
+            <li><a href="/public/views/dashboard.php"><i class="material-icons nav-icon" id="home-button" >home</i> <span class="nav-text">Home</span></a></li>
+            <li><a href="/public/views/settings.php"><i class="material-icons nav-icon" id="settings-button" >settings</i> <span class="nav-text">Settings</span></a></li>
+            <li><a href="/public/views/export.php"><i class="material-icons nav-icon" id="import-button" >upload</i> <span class="nav-text">Exporting</span></a></li>
+            <li><a href="/public/views/import.php"><i class="material-icons nav-icon" id="export-button" >download</i> <span class="nav-text">Importing</span></a></li>
+            <li><a href="<?= $logoutUrl ?>"><i class="material-icons nav-icon" id="exit-button" >exit_to_app</i> <span class="nav-text">LogOut</span></a></li> 
         </ul>
     </nav>
+
+    <!-- Add CSS for clickable account -->
+    <style>
+        .clickable-account {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        
+        .clickable-account:hover {
+            opacity: 0.8;
+        }
+    </style>
 
     <!-- Notifications Modal -->
     <div id="notifications-modal" class="notifications-modal hidden">

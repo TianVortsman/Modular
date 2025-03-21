@@ -5,10 +5,15 @@ const customerModal = document.getElementById('customerModal');
 
 let currentCustomerId = null;
 let currentCustomerData = null;
+let currentPage = 1;
+let itemsPerPage = 10;
+let totalPages = 0;
+let currentSortColumn = 'company_name';
+let currentSortDirection = 'asc';
+let searchTimeout = null; // Add debounce timeout variable
 
 // Global variables at the top of the file
-let deviceRefreshInterval = null;
-const DEVICE_REFRESH_INTERVAL = 10000; // 10 seconds
+const SEARCH_DEBOUNCE_DELAY = 300; // 300ms debounce for search
 
 // Modal Functions
 function openAddCustomerModal() {
@@ -22,8 +27,8 @@ function closeAddCustomerModal() {
 function manageDevices(customerId) {
     if (!customerId) return;
     clientDevicesModal.classList.add('active');
-    // Fetch and populate devices data
-    fetchCustomerDevices(customerId);
+    // Fetch and populate devices data will be implemented later
+    showToast('Device management will be implemented later', 'info');
 }
 
 function closeClientDevicesModal() {
@@ -55,16 +60,56 @@ function closeManageCustomerModal() {
     currentCustomerData = null;
 }
 
-function loginAsCustomer() {
-    if (currentCustomerData && currentCustomerData.account_number) {
-        window.location.href = `dashboard.php?account_number=${currentCustomerData.account_number}`;
-    } else {
-        showToast('Error: Unable to login as customer', 'error');
+function loginAsTechnician() {
+    if (!currentCustomerData || !currentCustomerData.account_number) {
+        showToast('Error: Unable to login as technician - customer data missing', 'error');
+        return;
     }
+    
+    const accountNumber = currentCustomerData.account_number;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Show loading state
+    showLoadingModal('Logging in as technician...');
+    
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('account_number', accountNumber);
+    formData.append('csrf_token', csrfToken);
+    
+    // Make API request
+    fetch('../../src/api/tech_login.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Redirect to the provided URL
+            window.location.href = data.redirect;
+        } else {
+            showToast(`Error: ${data.error || 'Unknown error'}`, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Login failed:', error);
+        showToast(`Login failed: ${error.message}`, 'error');
+    })
+    .finally(() => {
+        hideLoadingModal();
+    });
 }
 
 // Initialize modal event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize customers data
+    fetchCustomerData();
+
     // Add click handlers for all tab buttons
     const tabButtons = document.querySelectorAll('.tab-button');
     tabButtons.forEach(button => {
@@ -107,6 +152,34 @@ document.addEventListener('DOMContentLoaded', function() {
             event.stopPropagation();
         });
     });
+    
+    // Initialize pagination buttons
+    setupPaginationEventListeners();
+
+    // Add double-click event listener for customer table
+    document.getElementById('customer-table').addEventListener('dblclick', function(event) {
+        // Find the closest tr element (customer row)
+        const row = event.target.closest('tr');
+        if (row && row.dataset.customerId) {
+            openManageCustomerModal(row.dataset.customerId);
+        }
+    });
+
+    // Initialize search input with debounce
+    const searchInput = document.getElementById('search-bar');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            // Clear any existing timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            // Set a new timeout
+            searchTimeout = setTimeout(() => {
+                searchCustomers();
+            }, SEARCH_DEBOUNCE_DELAY);
+        });
+    }
 });
 
 // Function to switch tabs
@@ -125,14 +198,6 @@ function switchTab(tabId) {
     
     if (selectedTab) selectedTab.classList.add('active');
     if (selectedButton) selectedButton.classList.add('active');
-
-    // If switching to clock machines tab, load the machines
-    if (tabId === 'clock-machines') {
-        const modal = document.getElementById('customerModal');
-        if (modal && modal.dataset.accountNumber) {
-            loadClockMachines(modal.dataset.accountNumber);
-        }
-    }
 }
 
 // Customer Data Management
@@ -146,7 +211,7 @@ function fetchCustomerDetails(customerId) {
     const modalContent = customerModal.querySelector('.modal-content');
     if (modalContent) modalContent.classList.add('loading');
 
-    fetch(`../php/get-customer-details.php?id=${customerId}`)
+    fetch(`../../src/api/customer.php?action=details&id=${customerId}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -210,15 +275,12 @@ function updateCustomerModalContent(data) {
     currentCustomerData = customerData;
 
     // Load data for each tab
-    if (customerData.id) {
-        loadUsersData(customerData.id);
-        loadModulesData(customerData.id);
+    if (customerData.customer_id) {
+        loadUsersData(customerData.customer_id);
+        loadModulesData(customerData.customer_id);
     }
     
     loadAccountSettings(data);
-
-    // Load clock machines using the account number
-    loadClockMachines(customerData.account_number);
 }
 
 // Users Management
@@ -228,7 +290,7 @@ function loadUsersData(customerId) {
         return;
     }
 
-    fetch(`../php/get-customer-users.php?customer_id=${customerId}`)
+    fetch(`../../src/api/customer.php?action=users&customer_id=${customerId}`)
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
@@ -277,7 +339,7 @@ function loadModulesData(customerId) {
         return;
     }
 
-    fetch(`../php/get-customer-modules.php?customer_id=${customerId}`)
+    fetch(`../../src/api/customer.php?action=modules&customer_id=${customerId}`)
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
@@ -314,169 +376,6 @@ function updateModulesList(containerId, modules) {
         `;
         container.appendChild(moduleDiv);
     });
-}
-
-// Clock Machines Management
-function loadClockMachines(accountNumber) {
-    if (!accountNumber) {
-        console.error('No account number provided to loadClockMachines');
-        showResponseModal('error', 'Missing account number');
-        return;
-    }
-
-    // Make sure we're using the functions defined in loading-modal.php
-    if (typeof showLoadingModal !== 'function') {
-        console.error('showLoadingModal function not found');
-        return;
-    }
-
-    showLoadingModal('Loading clock machines...');
-    
-    // Track both fetch operations
-    let portFetchComplete = false;
-    let devicesComplete = false;
-    
-    function checkAndHideLoading() {
-        if (portFetchComplete && devicesComplete) {
-            // Use the global hideLoadingModal function
-            if (typeof hideLoadingModal === 'function') {
-                hideLoadingModal();
-            } else {
-                console.error('hideLoadingModal function not found');
-                // Fallback to direct manipulation
-                const modal = document.getElementById('unique-loading-modal');
-                if (modal) {
-                    modal.style.opacity = 0;
-                    setTimeout(() => {
-                        modal.classList.add('hidden');
-                        modal.style.display = 'none';
-                    }, 300);
-                }
-            }
-        }
-    }
-
-    // Load the clock server port
-    fetch(`../api/get-clock-server-port.php?account_number=${accountNumber}`)
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                const portDisplay = document.getElementById('clockServerPort');
-                if (portDisplay) {
-                    portDisplay.textContent = data.port || 'Not configured';
-                    updateServerStatus(data.port);
-                } else {
-                    console.error('Port display element not found');
-                }
-            } else {
-                throw new Error(data.error || 'Failed to load port');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading clock server port:', error);
-            showResponseModal('error', 'Failed to load clock server port');
-        })
-        .finally(() => {
-            portFetchComplete = true;
-            checkAndHideLoading();
-        });
-        
-    // Load devices for devices table
-    const devicesTable = document.getElementById('devicesTableBody');
-    const loadingIndicator = document.getElementById('devicesLoading');
-    const noDevicesMessage = document.getElementById('noDevicesMessage');
-    
-    if (devicesTable && loadingIndicator && noDevicesMessage) {
-        // Show loading, hide table and no devices message
-        loadingIndicator.classList.remove('hidden');
-        noDevicesMessage.classList.add('hidden');
-        
-        // Call the get_customer_devices API to get devices for this account
-        fetch(`../techlogin/api/get_customer_devices.php?account_number=${accountNumber}`)
-            .then(response => response.json())
-            .then(data => {
-                loadingIndicator.classList.add('hidden');
-                
-                if (data.success && data.devices && data.devices.length > 0) {
-                    // Clear table body
-                    devicesTable.innerHTML = '';
-                    
-                    // Populate table with devices
-                    data.devices.forEach(device => {
-                        const row = document.createElement('tr');
-                        
-                        // Format last online date
-                        const lastOnline = device.last_online 
-                            ? new Date(device.last_online).toLocaleString() 
-                            : 'Never';
-                        
-                        // Determine status class
-                        const statusClass = device.status === 'online' 
-                            ? 'status-online' 
-                            : 'status-offline';
-                        
-                        row.innerHTML = `
-                            <td>${escapeHtml(device.device_id || device.serial_number || '')}</td>
-                            <td>${escapeHtml(device.device_name || '')}</td>
-                            <td>${escapeHtml(device.ip_address || '')}</td>
-                            <td><span class="status-badge ${statusClass}">${device.status || 'offline'}</span></td>
-                            <td>${lastOnline}</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="icon-button" onclick="viewMachineDetails('${device.device_id}')" title="View Details">
-                                        <i class="material-icons">visibility</i>
-                                    </button>
-                                    <button class="icon-button" onclick="editMachine('${device.device_id}')" title="Edit Device">
-                                        <i class="material-icons">edit</i>
-                                    </button>
-                                    <button class="icon-button" onclick="controlMachineDoor('${device.device_id}')" title="Control Door">
-                                        <i class="material-icons">meeting_room</i>
-                                    </button>
-                                    <button class="icon-button danger" onclick="confirmDeleteMachine('${device.device_id}')" title="Delete Device">
-                                        <i class="material-icons">delete</i>
-                                    </button>
-                                </div>
-                            </td>
-                        `;
-                        
-                        devicesTable.appendChild(row);
-                    });
-                    
-                    // Show table
-                    document.getElementById('devicesTable').classList.remove('hidden');
-                    
-                    // Setup auto-refresh
-                    setupDeviceRefresh(accountNumber);
-                } else {
-                    // Show no devices message
-                    noDevicesMessage.classList.remove('hidden');
-                }
-            })
-            .catch(error => {
-                console.error('Error loading devices:', error);
-                loadingIndicator.classList.add('hidden');
-                noDevicesMessage.classList.remove('hidden');
-                noDevicesMessage.innerHTML = `
-                    <p>Error loading devices: ${error.message}</p>
-                    <button class="btn btn-primary" onclick="loadClockMachines('${accountNumber}')">
-                        <i class="material-icons">refresh</i> Retry
-                    </button>
-                `;
-            })
-            .finally(() => {
-                devicesComplete = true;
-                checkAndHideLoading();
-            });
-    } else {
-        devicesComplete = true;
-        checkAndHideLoading();
-    }
-
-    // Clear any existing refresh interval
-    clearDeviceRefresh();
 }
 
 // Account Settings Management
@@ -535,33 +434,11 @@ function loadDropdownOptions(selectId, selectedValue, options) {
 
 // Storage Management
 function loadStorageData(customerId) {
-    fetch(`../php/get-storage-stats.php?customer_id=${customerId}`)
-        .then(response => response.json())
-        .then(data => {
-            // Update storage progress bars
-            updateStorageProgress('storage-usage', data.storage_used, data.storage_limit);
-            updateStorageProgress('database-usage', data.database_size, data.database_limit);
-            
-            // Update details text
-            document.getElementById('storage-details').textContent = 
-                `${formatSize(data.storage_used)} of ${formatSize(data.storage_limit)} used`;
-            document.getElementById('database-details').textContent = 
-                `${formatSize(data.database_size)} of ${formatSize(data.database_limit)} used`;
-
-            // Set archive settings
-            document.getElementById('archive_age').value = data.archive_age || '3';
-            document.getElementById('archive_location').value = data.archive_location || 'local';
-        });
+    console.log('Storage data will be implemented later');
+    showToast('Storage management will be implemented later', 'info');
 }
 
 // Helper Functions
-function updateStorageProgress(elementId, used, total) {
-    const percentage = (used / total) * 100;
-    const progressElement = document.getElementById(elementId);
-    progressElement.style.width = `${percentage}%`;
-    progressElement.className = `progress ${percentage > 90 ? 'danger' : percentage > 70 ? 'warning' : ''}`;
-}
-
 function formatSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     if (bytes === 0) return '0 Byte';
@@ -582,37 +459,31 @@ function openCustomerTab(event, tabName) {
 }
 
 // Sort Functions
-let currentSort = { column: '', direction: 'asc' };
-
 function sortByColumn(column) {
     const icons = document.querySelectorAll('.sort-icon');
     icons.forEach(icon => icon.textContent = 'unfold_more');
 
-    if (currentSort.column === column) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
-        currentSort.column = column;
-        currentSort.direction = 'asc';
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
     }
 
     const icon = document.querySelector(`th[onclick="sortByColumn('${column}')"] .sort-icon`);
-    icon.textContent = currentSort.direction === 'asc' ? 'arrow_upward' : 'arrow_downward';
+    icon.textContent = currentSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
 
-    fetchCustomerData(); // This will re-fetch data with new sort parameters
+    fetchCustomerData(); // Re-fetch data with new sort parameters
 }
 
 // Device Discovery
 function startDeviceDiscovery() {
-    // Implement device discovery logic
-    console.log('Starting device discovery...');
-    // Add your device discovery implementation here
+    showToast('Device discovery will be implemented later', 'info');
 }
 
 // Export Function
 function exportCustomerData() {
-    // Implement export functionality
-    console.log('Exporting customer data...');
-    // Add your export implementation here
+    showToast('Export functionality will be implemented later', 'info');
 }
 
 // Initialize tooltips if you're using them
@@ -729,9 +600,6 @@ function closeCustomerModal() {
         setTimeout(() => {
             modal.style.display = 'none';
             modal.classList.remove('closing');
-            
-            // Clear device refresh interval
-            clearDeviceRefresh();
         }, 300); // Match the animation duration
     }
 }
@@ -751,218 +619,268 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Function to save clock server port
-async function saveClockServerPort() {
-    const modal = document.getElementById('customerModal');
-    const portInput = document.getElementById('clockServerPort');
-    const accountNumber = modal?.dataset?.accountNumber;
-    
-    if (!portInput || !accountNumber) {
-        showResponseModal('error', 'Missing required information');
-        return;
-    }
-    
-    const port = parseInt(portInput.value);
-    if (isNaN(port) || port < 1024 || port > 65535) {
-        showResponseModal('error', 'Invalid port number. Must be between 1024 and 65535');
-        return;
-    }
-    
-    // Make sure we're using the functions defined in loading-modal.php
-    if (typeof showLoadingModal !== 'function') {
-        console.error('showLoadingModal function not found');
-        showResponseModal('error', 'Internal error: loading modal function not found');
-        return;
-    }
-    
-    showLoadingModal('Saving port...');
-    
-    try {
-        const response = await fetch('../api/update-clock-server-port.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                account_number: accountNumber,
-                port: port
-            })
-        });
-        
-        if (!response.ok) throw new Error('Failed to update port');
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showResponseModal('success', 'Port updated successfully');
-            updateServerStatus(port);
-        } else {
-            throw new Error(data.error || 'Failed to update port');
-        }
-    } catch (error) {
-        console.error('Error updating port:', error);
-        showResponseModal('error', error.message || 'Failed to update port');
-    } finally {
-        // Use the global hideLoadingModal function
-        if (typeof hideLoadingModal === 'function') {
-            hideLoadingModal();
-        } else {
-            console.error('hideLoadingModal function not found');
-            // Fallback to direct manipulation
-            const loadingModal = document.getElementById('unique-loading-modal');
-            if (loadingModal) {
-                loadingModal.style.opacity = 0;
-                setTimeout(() => {
-                    loadingModal.classList.add('hidden');
-                    loadingModal.style.display = 'none';
-                    loadingModal.style.visibility = 'hidden';
-                }, 300);
-            }
-        }
-    }
-}
-
-// Function to update server status
-async function updateServerStatus(port) {
-    const statusIndicator = document.getElementById('server-status-indicator');
-    const statusText = document.getElementById('server-status-text');
-    
-    if (!statusIndicator || !statusText) return;
-    
-    statusIndicator.className = 'status-indicator pending';
-    statusText.textContent = 'Checking server status...';
-    
-    try {
-        const response = await fetch(`../api/check-clock-server-status.php?port=${port}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            if (data.is_running) {
-                statusIndicator.className = 'status-indicator online';
-                statusText.textContent = `Server is running on port ${port}`;
-            } else {
-                statusIndicator.className = 'status-indicator offline';
-                statusText.textContent = 'Server is not running';
-            }
-        } else {
-            throw new Error(data.error || 'Error checking server status');
-        }
-    } catch (error) {
-        console.error('Error checking server status:', error);
-        statusIndicator.className = 'status-indicator error';
-        statusText.textContent = 'Error checking server status';
-    }
-}
-
 // Search function for customer search bar
 function searchCustomers() {
     const searchTerm = document.getElementById('search-bar').value.trim();
-    if (window.fetchCustomerData) {
-        currentPage = 1; // Reset to first page when searching
-        window.fetchCustomerData(searchTerm);
-    } else {
-        console.error('fetchCustomerData function not available');
-        showToast('Search functionality not available', 'error');
-    }
+    fetchCustomerData(searchTerm);
 }
 
-// Add these new functions to handle the periodic refresh
-function setupDeviceRefresh(accountNumber) {
-    // Clear any existing interval first
-    clearDeviceRefresh();
+// Customer List Management
+function fetchCustomerData(searchTerm = '') {
+    // Only show the loading modal on initial page load, not during search
+    const initialLoad = !searchTerm && currentPage === 1;
     
-    // Setup new refresh interval
-    deviceRefreshInterval = setInterval(() => {
-        refreshDevicesData(accountNumber);
-    }, DEVICE_REFRESH_INTERVAL);
-    
-    // Add event listener to clear interval when tab is closed
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-}
-
-function clearDeviceRefresh() {
-    if (deviceRefreshInterval) {
-        clearInterval(deviceRefreshInterval);
-        deviceRefreshInterval = null;
-    }
-}
-
-function handleVisibilityChange() {
-    if (document.hidden) {
-        // Tab is hidden, clear refresh to save resources
-        clearDeviceRefresh();
+    if (initialLoad && typeof showLoadingModal === 'function') {
+        showLoadingModal('Loading customers...');
     } else {
-        // Tab is visible again, setup refresh if modal is still open
-        const modal = document.getElementById('customerModal');
-        if (modal && modal.style.display !== 'none' && modal.classList.contains('active')) {
-            const accountNumber = modal.dataset.accountNumber;
-            if (accountNumber) {
-                setupDeviceRefresh(accountNumber);
-                // Immediately refresh data
-                refreshDevicesData(accountNumber);
-            }
+        // For search or pagination, only show loading indicator in the table
+        const tableBody = document.getElementById('customer-body');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="loading-data">
+                        <div class="spinner-container">
+                            <div class="spinner"></div>
+                            <span>Loading...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
     }
-}
-
-function refreshDevicesData(accountNumber) {
-    const devicesTable = document.getElementById('devicesTableBody');
-    if (!devicesTable || !accountNumber) return;
     
-    // Quiet refresh - no loading indicators
-    fetch(`../techlogin/api/get_customer_devices.php?account_number=${accountNumber}`)
-        .then(response => response.json())
+    const url = new URL('../../src/api/customer.php', window.location.href);
+    url.searchParams.append('action', 'list');
+    url.searchParams.append('page', currentPage);
+    url.searchParams.append('per_page', itemsPerPage);
+    url.searchParams.append('sort_by', currentSortColumn);
+    url.searchParams.append('sort_direction', currentSortDirection);
+    
+    if (searchTerm) {
+        url.searchParams.append('search', searchTerm);
+    }
+    
+    console.log('Fetching customers from URL:', url.toString());
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
         .then(data => {
-            if (data.success && data.devices && data.devices.length > 0) {
-                // Clear table body
-                devicesTable.innerHTML = '';
-                
-                // Populate table with devices
-                data.devices.forEach(device => {
-                    const row = document.createElement('tr');
-                    
-                    // Format last online date
-                    const lastOnline = device.last_online 
-                        ? new Date(device.last_online).toLocaleString() 
-                        : 'Never';
-                    
-                    // Determine status class
-                    const statusClass = device.status === 'online' 
-                        ? 'status-online' 
-                        : 'status-offline';
-                    
-                    row.innerHTML = `
-                        <td>${escapeHtml(device.device_id || device.serial_number || '')}</td>
-                        <td>${escapeHtml(device.device_name || '')}</td>
-                        <td>${escapeHtml(device.ip_address || '')}</td>
-                        <td><span class="status-badge ${statusClass}">${device.status || 'offline'}</span></td>
-                        <td>${lastOnline}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button class="icon-button" onclick="viewMachineDetails('${device.device_id}')" title="View Details">
-                                    <i class="material-icons">visibility</i>
-                                </button>
-                                <button class="icon-button" onclick="editMachine('${device.device_id}')" title="Edit Device">
-                                    <i class="material-icons">edit</i>
-                                </button>
-                                <button class="icon-button" onclick="controlMachineDoor('${device.device_id}')" title="Control Door">
-                                    <i class="material-icons">meeting_room</i>
-                                </button>
-                                <button class="icon-button danger" onclick="confirmDeleteMachine('${device.device_id}')" title="Delete Device">
-                                    <i class="material-icons">delete</i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    
-                    devicesTable.appendChild(row);
-                });
-                
-                // Show table
-                document.getElementById('devicesTable').classList.remove('hidden');
-            }
+            console.log('Customer data received:', data);
+            
+            if (!data.success) throw new Error(data.error || 'Failed to load customers');
+            
+            displayCustomers(data.customers);
+            updatePagination(data.pagination);
         })
         .catch(error => {
-            console.error('Error refreshing devices:', error);
+            console.error('Error loading customers:', error);
+            showToast('Failed to load customer data: ' + error.message, 'error');
+            
+            // Display empty state
+            const tbody = document.getElementById('customer-body');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="8" class="no-data">Error loading customers: ${error.message}</td></tr>`;
+            }
+            
+            // Reset pagination
+            document.getElementById('showing-start').textContent = '0';
+            document.getElementById('showing-end').textContent = '0';
+            document.getElementById('total-entries').textContent = '0';
+            document.getElementById('page-numbers').innerHTML = '';
+        })
+        .finally(() => {
+            if (initialLoad && typeof hideLoadingModal === 'function') {
+                hideLoadingModal();
+            }
         });
+}
+
+function displayCustomers(customers) {
+    const tableBody = document.getElementById('customer-body');
+    if (!tableBody) {
+        console.error('Customer table body not found');
+        return;
+    }
+
+    // Update customer count
+    const customerCount = document.querySelector('.customer-count');
+    if (customerCount) {
+        customerCount.textContent = customers.length === 1 
+            ? '1 customer' 
+            : `${customers.length} customers`;
+    }
+
+    // Clear existing rows
+    tableBody.innerHTML = '';
+
+    if (!customers || customers.length === 0) {
+        const noDataRow = document.createElement('tr');
+        noDataRow.innerHTML = `
+            <td colspan="8" class="no-data">No customers found. Try a different search term.</td>
+        `;
+        tableBody.appendChild(noDataRow);
+        return;
+    }
+
+    // Populate table with customer data
+    customers.forEach(customer => {
+        const row = document.createElement('tr');
+        row.className = 'customer-row';
+        row.dataset.customerId = customer.customer_id; // Add customer_id to the row for double-click
+
+        // Format last login date if it exists
+        const lastLogin = customer.last_login ? formatDate(customer.last_login) : 'Never';
+
+        // Determine status class
+        const statusClass = (customer.status || 'inactive').toLowerCase();
+
+        row.innerHTML = `
+            <td>${customer.company_name || 'Unknown'}</td>
+            <td>${customer.company_name || 'Unknown'}</td>
+            <td>${customer.email || 'No email'}</td>
+            <td>${customer.account_number || 'No account'}</td>
+            <td>
+                <div class="device-stats">
+                    <span class="device-total">${customer.user_count || 0}</span>
+                    <span class="device-active">${customer.active_users || 0} active</span>
+                </div>
+            </td>
+            <td>
+                <span class="status-badge ${statusClass}">${customer.status || 'Inactive'}</span>
+            </td>
+            <td>${lastLogin}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="icon-button" onclick="openManageCustomerModal(${customer.customer_id})" title="View Details">
+                        <i class="material-icons">visibility</i>
+                    </button>
+                    <button class="icon-button" onclick="editCustomer(${customer.customer_id})" title="Edit">
+                        <i class="material-icons">edit</i>
+                    </button>
+                    <button class="icon-button" onclick="manageDevices(${customer.customer_id})" title="Manage Devices">
+                        <i class="material-icons">devices</i>
+                    </button>
+                    <button class="icon-button danger" onclick="deleteCustomer(${customer.customer_id})" title="Delete">
+                        <i class="material-icons">delete</i>
+                    </button>
+                </div>
+            </td>
+        `;
+
+        tableBody.appendChild(row);
+    });
+}
+
+// Pagination Functions
+function updatePagination(pagination) {
+    if (!pagination) {
+        console.error('No pagination data provided');
+        return;
+    }
+    
+    console.log('Updating pagination with:', pagination);
+    
+    // Update global variables
+    currentPage = pagination.current_page;
+    totalPages = pagination.total_pages;
+    
+    // Update showing info
+    document.getElementById('showing-start').textContent = pagination.showing.start;
+    document.getElementById('showing-end').textContent = pagination.showing.end;
+    document.getElementById('total-entries').textContent = pagination.showing.total;
+    
+    // Generate page numbers
+    const pageNumbers = document.getElementById('page-numbers');
+    pageNumbers.innerHTML = '';
+    
+    if (totalPages === 0) {
+        return; // No pages to display
+    }
+    
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const button = document.createElement('button');
+        button.className = `pagination-button${i === currentPage ? ' active' : ''}`;
+        button.textContent = i;
+        button.onclick = () => goToPage(i);
+        pageNumbers.appendChild(button);
+    }
+}
+
+function setupPaginationEventListeners() {
+    document.getElementById('rows-per-page').addEventListener('change', function() {
+        itemsPerPage = parseInt(this.value);
+        currentPage = 1;
+        fetchCustomerData();
+    });
+}
+
+function goToPage(page) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    fetchCustomerData();
+}
+
+function goToFirstPage() {
+    goToPage(1);
+}
+
+function goToPreviousPage() {
+    goToPage(currentPage - 1);
+}
+
+function goToNextPage() {
+    goToPage(currentPage + 1);
+}
+
+function goToLastPage() {
+    goToPage(totalPages);
+}
+
+// User Management Functions - Stubs for future implementation
+function editUser(userId) {
+    console.log(`Editing user with ID: ${userId}`);
+    showToast('User edit functionality not yet implemented', 'info');
+}
+
+function resetPassword(userId) {
+    console.log(`Resetting password for user with ID: ${userId}`);
+    showToast('Password reset functionality not yet implemented', 'info');
+}
+
+function deleteUser(userId) {
+    console.log(`Deleting user with ID: ${userId}`);
+    showToast('User deletion functionality not yet implemented', 'warning');
+}
+
+// Customer Management Functions - Stubs for future implementation
+function editCustomer(customerId) {
+    console.log(`Editing customer with ID: ${customerId}`);
+    showToast('Customer edit functionality not yet implemented', 'info');
+}
+
+function deleteCustomer(customerId) {
+    console.log(`Deleting customer with ID: ${customerId}`);
+    showToast('Customer deletion functionality not yet implemented', 'warning');
+}
+
+// Module Management Functions - Stubs for future implementation
+function toggleModule(moduleName, currentStatus) {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    console.log(`Toggling module ${moduleName} from ${currentStatus} to ${newStatus}`);
+    showToast(`${moduleName} module is now ${newStatus}`, 'info');
+}
+
+function saveModuleSettings() {
+    console.log('Saving module settings');
+    showToast('Module settings saved', 'success');
 }
